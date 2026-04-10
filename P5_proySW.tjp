@@ -19,7 +19,9 @@ project pSix "Web Game"  2025-12-15 +5m {
   # the project reports. If not specified, the current day will be
   # used, but this will likely be outside of the project range, so it
   # can't be seen in the reports.
-  now 2026-02-25-13:00
+
+  # FECHA DE HOY
+  now 2026-04-10-15:00
   # The currency for all money values is the US Dollar.
   currency "EUR"
 
@@ -67,6 +69,12 @@ resource dev2 "Samantha Müller" {
 }
 resource dev3 "Peter Green" {
   email "kkk@unizar.es"
+}
+# Me incluyo como desarrollador del equipo
+resource devAlex "Alejandro Saenz" {
+  email "900280@unizar.es"
+  # Establezco un limite de 4 horas dirarias
+  limits { dailymax 4h }
 }
 
 # Now we specify the work packages. The whole project is described as
@@ -147,14 +155,89 @@ task WMGame "Web & Mobile Game" {
     }    
   }
 
-  task ttest "Acceptance tests" {
-      effort 10d
-      allocate boss
-      allocate dev2
-      actual:effort 20d
-      depends WMGame.twebF
-      depends WMGame.tback
+# Añadir tarea de versión móvil del frontend
+task tmobF "Mobile Front End" {
+    purge chargeset
+    chargeset mFront
+    responsible dev3
+    # Depende del desarrollo de la interfaz gráfica general
+    depends WMGame.twebF.tGUId
+    # Subtarea para la interfaz gráfica adaptada a movil
+    task tmGUId "Mobile GUI Adaptation" {
+      # Duracion de la subtarea
+      effort 7d
+      # Me asigno como desarrollador junto con dev3
+      allocate dev3, devAlex
+    }
+    # Subtarea creacion del front
+    task tmFEc "Mobile Front End Construction" {
+      # Duracion de la subtarea
+      effort 18d
+      # Me asigno como desarrollador junto con dev3
+      allocate dev3, devAlex
+      # Depende del desarrollo de la interfaz gráfica para movil
+      depends WMGame.tmobF.tmGUId
+    }
+    # Subtarea testeo del front
+    task tmFEt "Mobile Front End Test" {
+      # Duracion de la subtarea
+      effort 6d
+      # Me asigno como desarrollador junto con dev3
+      allocate dev1, devAlex
+      # Depende del desarrollo del front
+      depends WMGame.tmobF.tmFEc
+    }
+  }
+
+  # Añadir tarea de soporte al despliegue en la nube del back end
+  task tcloud "Cloud Deployment" {
+    purge chargeset
+    chargeset back
+    responsible dev1
+    # Depende del desarrollo del back
+    depends WMGame.tback.tbackDev
+    # Subtarea para la evaluación de proveedores
+    task tcloudEval "Cloud Provider Evaluation" {
+      # Duracion de la subtarea
+      effort 3d
+      # Me asigno como desarrollador junto con dev1
+      allocate dev1, devAlex
+      # Añadir una anotacion en la fecha de hoy
+      journalentry 2026-04-10 "Evaluación de proveedores cloud iniciada" {
+        author devAlex
+        alert green
+        summary "Se ha comenzado el análisis comparativo de AWS y Azure para el despliegue del back end."
       }
+    }
+    # Subtarea para la configuracion y el setuo del back
+    task tcloudConf "Cloud Configuration & Setup" {
+      # Duracion de la subtarea
+      effort 5d
+      # Me asigno como desarrollador junto con dev1
+      allocate dev1, devAlex
+      # Depende de la eleccion de proveedor
+      depends WMGame.tcloud.tcloudEval
+    }
+    # Subtarea para el despliegue y la verificación
+    task tcloudDeploy "Deployment & Verification" {
+      # Duracion de la subtarea
+      effort 4d
+      # Me asigno como desarrollador junto con dev1 y dev2
+      allocate dev1, dev2, devAlex
+      # Depende de la configuracion del back
+      depends WMGame.tcloud.tcloudConf
+    }
+  }
+
+  task ttest "Acceptance tests" {
+    effort 10d
+    allocate boss
+    allocate dev2
+    actual:effort 20d
+    # Fijar inicio de pruebas de aceptación como pronto el 15 de mayo
+    start 2026-05-15
+    depends WMGame.twebF, WMGame.tback, WMGame.tmobF, WMGame.tcloud
+  }
 
     
   task deliveries "Milestones" {
@@ -251,6 +334,12 @@ textreport frame "" {
     formats html
     title "Resource Graph"
     center '<[report id="resourceGraph"]>'
+  }
+  # Creo una pestaña nueva en la interfaz HTML que genera TaskJuggler
+  textreport "InitialPlan" {
+    formats html
+    title "Initial Plan"
+    center '<[report id="initialPlan"]>'
   }
 }
 
@@ -351,4 +440,22 @@ resourcereport resourceGraph "" {
   # We only like to show leaf tasks for leaf resources.
   hidetask ~(isleaf() & isleaf_())
   sorttasks plan.start.up
+}
+
+
+# Informe de tipo Gantt que muestra el escenario inicial (plan)
+taskreport initialPlan "" {
+  # Usa el escenario "plan" (planificación original, sin desviaciones)
+  scenarios plan
+  # Columnas del informe 
+  columns bsi { title 'WBS' }, name, start, end, effort,
+          chart { ${TaskTip} }
+  # Formato de fecha
+  timeformat "%a %Y-%m-%d"
+  # Las unidades de carga de trabajo se expresan en días
+  loadunit days
+  # Oculta todos los recursos (solo se muestran tareas, no quién las hace)
+  hideresource @all
+  # Nota al pie del informe
+  caption 'All effort values are in man days.'
 }
