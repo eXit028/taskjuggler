@@ -169,6 +169,7 @@ task tmobF "Mobile Front End" {
       # Me asigno como desarrollador junto con dev3
       allocate dev3, devAlex
     }
+    
     # Subtarea creacion del front
     task tmFEc "Mobile Front End Construction" {
       # Duracion de la subtarea
